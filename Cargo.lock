@@ -262,7 +262,7 @@ checksum = "583034fd73374156e66797ed8e5b0d5690409c9226b22d87cb7f19821c05d152"
 [[package]]
 name = "salsa"
 version = "0.18.0"
-source = "git+https://github.com/salsa-rs/salsa.git?rev=4a7c955255e707e64e43f3ce5eabb771ae067768#4a7c955255e707e64e43f3ce5eabb771ae067768"
+source = "git+https://github.com/salsa-rs/salsa.git?branch=master#a20b894cc2318c5a6077659e2d8aef7c784c38e7"
 dependencies = [
  "append-only-vec",
  "arc-swap",
@@ -282,12 +282,12 @@ dependencies = [
 [[package]]
 name = "salsa-macro-rules"
 version = "0.1.0"
-source = "git+https://github.com/salsa-rs/salsa.git?rev=4a7c955255e707e64e43f3ce5eabb771ae067768#4a7c955255e707e64e43f3ce5eabb771ae067768"
+source = "git+https://github.com/salsa-rs/salsa.git?branch=master#a20b894cc2318c5a6077659e2d8aef7c784c38e7"
 
 [[package]]
 name = "salsa-macros"
 version = "0.18.0"
-source = "git+https://github.com/salsa-rs/salsa.git?rev=4a7c955255e707e64e43f3ce5eabb771ae067768#4a7c955255e707e64e43f3ce5eabb771ae067768"
+source = "git+https://github.com/salsa-rs/salsa.git?branch=master#a20b894cc2318c5a6077659e2d8aef7c784c38e7"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -301,6 +301,7 @@ name = "salsa-thing"
 version = "0.1.0"
 dependencies = [
  "salsa",
+ "string-interner",
 ]
 
 [[package]]
@@ -310,10 +311,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
+name = "serde"
+version = "1.0.210"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8e3592472072e6e22e0a54d5904d9febf8508f65fb8552499a1abc7d1078c3a"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.210"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "243902eda00fad750862fc144cea25caca5e20d615af0a81bee94ca738f1df1f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "smallvec"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+
+[[package]]
+name = "string-interner"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c6a0d765f5807e98a091107bae0a56ea3799f66a5de47b2c84c94a39c09974e"
+dependencies = [
+ "cfg-if",
+ "hashbrown 0.14.5",
+ "serde",
+]
 
 [[package]]
 name = "syn"

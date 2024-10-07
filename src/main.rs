@@ -1,6 +1,6 @@
-use std::{collections::HashMap, fmt::Display};
+use std::collections::HashMap;
 
-use salsa::{Accumulator, AsDynDatabase, Database, Setter, Storage, Update};
+use salsa::{interned, Accumulator, Database, Setter, Storage, Update};
 
 fn main() {
     let mut db = TestDatabase::default();
@@ -24,7 +24,7 @@ foo"#
             ),
         ],
     );
-    compile_project(&db, project);
+    // compile_project(&db, project);
     let diags = compile_project::accumulated::<Diagnostic>(&db, project);
     for diags in diags.iter() {
         println!("{}: {}", diags.file, diags.message);
@@ -33,7 +33,7 @@ foo"#
     file1.set_content(&mut db).to(r#"file2
     foo"#
         .to_string());
-    compile_project(&db, project);
+    // compile_project(&db, project);
     let diags = compile_project::accumulated::<Diagnostic>(&db, project);
     for diags in diags.iter() {
         println!("{}: {}", diags.file, diags.message);
@@ -43,7 +43,7 @@ foo"#
     file1.set_content(&mut db).to(r#"file2
     foo test"#
         .to_string());
-    compile_project(&db, project);
+    // compile_project(&db, project);
     let diags = compile_project::accumulated::<Diagnostic>(&db, project);
     for diags in diags.iter() {
         println!("{}: {}", diags.file, diags.message);
@@ -63,6 +63,7 @@ impl salsa::Database for TestDatabase {
 
 #[salsa::input]
 struct File {
+    #[interned]
     name: String,
 
     #[return_ref]
@@ -71,6 +72,10 @@ struct File {
 
 #[salsa::tracked]
 struct Module<'db> {
+    #[id]
+    #[interned]
+    name: String,
+    #[return_ref]
     inner: ModuleInner<'db>,
 }
 
@@ -83,21 +88,25 @@ struct Diagnostic {
 #[derive(Debug, Clone, Update)]
 enum ModuleInner<'db> {
     Export,
-    Dir(HashMap<String, Module<'db>>),
+    Dir(Vec<Module<'db>>),
 }
 
 #[salsa::tracked]
-impl<'db> Module<'db> {
-    #[salsa::tracked]
-    fn resolve(self, db: &'db dyn Database, name: &'db [&'db str]) -> Option<Module<'db>> {
-        println!("resolving module: {:?}", name);
-        if name.is_empty() {
-            Some(self)
-        } else if let ModuleInner::Dir(modules) = self.inner(db) {
-            modules.get(name[0]).and_then(|m| m.resolve(db, &name[1..]))
-        } else {
-            None
-        }
+fn resolve<'db>(
+    db: &'db dyn Database,
+    module: Module<'db>,
+    name: &'db [&'db str],
+) -> Option<Module<'db>> {
+    println!("resolving module: {:?}", name);
+    if name.is_empty() {
+        Some(module)
+    } else if let ModuleInner::Dir(modules) = module.inner(db) {
+        modules
+            .iter()
+            .find(|m| m.name(db) == name[0])
+            .and_then(|m| resolve(db, *m, &name[1..]))
+    } else {
+        None
     }
 }
 
@@ -137,9 +146,9 @@ fn get_file_module<'db>(db: &'db dyn Database, file: File) -> Module<'db> {
     let exports = ast
         .exports(db)
         .iter()
-        .map(|s| (s.to_string(), Module::new(db, ModuleInner::Export)))
-        .collect::<HashMap<_, _>>();
-    Module::new(db, ModuleInner::Dir(exports))
+        .map(|s| Module::new(db, s.to_string(), ModuleInner::Export))
+        .collect::<Vec<_>>();
+    Module::new(db, file.name(db), ModuleInner::Dir(exports))
 }
 
 #[salsa::tracked]
@@ -148,9 +157,9 @@ fn get_project_module<'db>(db: &'db dyn Database, project: Project) -> Module<'d
     let modules = project
         .files(db)
         .iter()
-        .map(|file| (file.name(db), get_file_module(db, *file)))
-        .collect::<HashMap<_, _>>();
-    Module::new(db, ModuleInner::Dir(modules))
+        .map(|file| get_file_module(db, *file))
+        .collect::<Vec<_>>();
+    Module::new(db, "root".to_string(), ModuleInner::Dir(modules))
 }
 
 #[salsa::tracked]
@@ -164,21 +173,13 @@ fn check_file<'db>(db: &'db dyn Database, module: Module<'db>, file: File) {
         .collect::<Vec<_>>();
     for import in imports {
         let parts = import.split('.').collect::<Vec<_>>();
-        if module.resolve(db, &parts).is_none() {
+        if resolve(db, module, &parts).is_none() {
             Diagnostic {
                 message: format!("module not found: {}", import),
                 file: file.name(db).to_string(),
             }
             .accumulate(db);
         }
-    }
-}
-
-#[salsa::tracked]
-fn check_project<'db>(db: &'db dyn Database, module: Module<'db>, project: Project) {
-    println!("checking project");
-    for file in project.files(db) {
-        check_file(db, module, file);
     }
 }
 

@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-salsa = { git = "https://github.com/salsa-rs/salsa.git", rev = "4a7c955255e707e64e43f3ce5eabb771ae067768" }
+salsa = { git = "https://github.com/salsa-rs/salsa.git", branch = "master" }
+string-interner = "0.17.0"
